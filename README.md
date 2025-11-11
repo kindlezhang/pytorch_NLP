@@ -5,6 +5,8 @@ This is a repository for transformers in NLP study， especially language transl
 
 all materials come from paoge's course
 
+source code can be found in baidu yun `Transformer`.
+
 
 # mechanism
 
