@@ -18,7 +18,11 @@ def translate(src, model):
 
     with torch.no_grad():  # 禁用梯度计算，以节省内存
         # 加载训练好的模型权重
-        model.load_state_dict(torch.load(config.test_model_path))
+
+        # model.load_state_dict(torch.load(config.test_model_path))
+        model.load_state_dict(torch.load(config.test_model_path, map_location=config.device))
+        model.to(config.device)   # 将模型搬到指定设备
+
         model.eval()  # 将模型设置为评估模式
 
         # 创建源句子的掩码（mask），以确保填充的部分不会参与计算
@@ -92,8 +96,23 @@ def translate_example():
 
 if __name__ == "__main__":
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     import warnings
     warnings.filterwarnings('ignore')
+
+    # 自动选择设备：优先 MPS，其次 CUDA，最后 CPU
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
+    print(f"Using device: {device}")
+
+    # 将 config.device 设为选中的 device
+    config.device = device
+    config.device_id = [0]   # 兼容 DataParallel 时可保留
+
     translate_example()
 

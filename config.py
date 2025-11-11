@@ -67,7 +67,9 @@ train_data_path = './data/json/train.json'
 dev_data_path = './data/json/dev.json'
 test_data_path = './data/json/test.json'
 
+# 预训练权重
 model_path = './weights/transformer_model.pth'
+# 训练权重
 test_model_path = './run/train/exp/weights/best_bleu_26.30.pth'
 
 """

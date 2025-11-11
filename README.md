@@ -7,6 +7,9 @@ all materials come from paoge's course
 
 source code can be found in baidu yun `Transformer`.
 
+weights中是预训练权重
+run中储存的是训练的权重
+
 
 # mechanism
 
