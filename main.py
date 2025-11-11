@@ -166,7 +166,21 @@ def run():
 
 if __name__ == "__main__":
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     import warnings
     warnings.filterwarnings('ignore')
+
+     # 自动选择设备：优先 MPS，其次 CUDA，最后 CPU
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
+    print(f"Using device: {device}")
+
+    # 将 config.device 设为选中的 device
+    config.device = device
+    config.device_id = [0]   # 兼容 DataParallel 时可保留
+
     run()

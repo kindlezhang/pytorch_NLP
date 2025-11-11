@@ -74,12 +74,20 @@ test_model_path = './run/train/exp/weights/best_bleu_26.30.pth'
 设备配置
 这些参数用于配置模型运行的硬件设备。
 """
-# 指定使用的GPU设备的ID。
 # 指定设备ID的列表。
+# 自动检测设备优先级：MPS > CUDA > CPU
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+    device_name = "mps"
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
+    device_name = "cuda"
+else:
+    device = torch.device("cpu")
+    device_name = "cpu"
+
+# 兼容旧代码字段
 gpu_id = '0'
 device_id = [0]
-# set device
-if gpu_id != '':
-    device = torch.device(f"cuda:{gpu_id}")
-else:
-    device = torch.device('cpu')
+
+print(f"Using device: {device_name.upper()}")

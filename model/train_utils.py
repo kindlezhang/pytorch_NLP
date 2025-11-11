@@ -11,14 +11,31 @@ class MultiGPULossCompute:
             :param devices: 使用的GPU设备列表
             :param opt: 优化器对象，进行参数更新
             :param chunk_size: 将数据分割成多个小块进行计算的大小
+            支持多GPU（CUDA）和单设备（MPS / CPU）的损失计算类。
+            如果检测到当前环境不支持多GPU，会自动切换到单卡计算模式。
         """
-        # 将生成器复制到多个GPU上
-        self.generator = generator
-        # 使用nn.parallel.replicate将损失函数复制到多个GPU
-        self.criterion = nn.parallel.replicate(criterion, devices=devices)
-        self.opt = opt  # 优化器（可选）
-        self.devices = devices  # 设备列表，包含多个GPU的ID
-        self.chunk_size = chunk_size  # 每次计算的数据块大小
+
+        self.opt = opt
+        self.chunk_size = chunk_size # 每次计算的数据块大小
+
+        # 判断是否真的可以使用多GPU
+        self.use_multi_gpu = torch.cuda.is_available() and len(devices) > 1
+        self.devices = devices # 设备列表，可以包含多个GPU的ID
+
+        if self.use_multi_gpu:
+
+            # 将生成器复制到多个GPU上
+            self.generator = generator
+            # 使用nn.parallel.replicate将损失函数复制到多个GPU
+            self.criterion = nn.parallel.replicate(criterion, devices=devices)
+            self.opt = opt  # 优化器（可选）
+        
+        else:
+            # 单卡模式（MPS / CPU）
+            self.generator = generator
+            self.criterion = criterion
+
+        print(f"[INFO] Using {'multi-GPU' if self.use_multi_gpu else 'single device'} mode")
 
 
     def __call__(self, out, targets, normalize):
@@ -29,7 +46,23 @@ class MultiGPULossCompute:
             :param normalize: 用于规范化损失的常数
             :return: 总损失值（乘以normalize）
         """
+
         total = 0.0  # 初始化总损失
+
+        if not self.use_multi_gpu:
+            out = self.generator(out)
+            loss = self.criterion(out.contiguous().view(-1, out.size(-1)),
+                                  targets.contiguous().view(-1))
+            loss = loss / normalize
+
+            total += loss.item()
+            if self.opt is not None:
+                loss.backward()
+                self.opt.step()
+                self.opt.optimizer.zero_grad()
+            return total * normalize
+
+        
         # 将生成器复制到多个GPU上
         generator = nn.parallel.replicate(self.generator, devices=self.devices)
         # 将模型输出分发到多个GPU
