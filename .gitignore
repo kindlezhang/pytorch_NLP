@@ -5,3 +5,5 @@ __pycache__
 /weights/
 
 /run/
+
+.DS_Store
